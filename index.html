@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>4streams</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&display=swap">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#000;--fg:#999;--fg2:#666;--fg3:#444;--fg4:#333;--fg5:#222;--fg6:#1a1a1a;--card:#0a0a0a;--white:#fff;--green:#5f5;--border:#111;--font:'Rubik',system-ui,sans-serif}
+body{font-family:var(--font);background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased;line-height:1.5}
+.app{max-width:960px;margin:0 auto;padding:0 32px 140px}
+.logo{padding:40px 0 32px}
+.logo svg{height:120px;width:auto;display:block}
+.setup{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:28px}
+.setup-left,.setup-right{display:flex;flex-direction:column;gap:20px}
+.sec{margin-bottom:0}
+.sec-t{font-size:11px;font-weight:500;color:var(--fg3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.nets{display:flex;flex-direction:column;gap:10px}
+.net{display:flex;flex-direction:column;gap:5px}
+.net-h{display:flex;align-items:center;justify-content:space-between}
+.net-name{font-size:11px;color:var(--fg3);letter-spacing:0.5px}
+.net-tog{font-size:10px;color:var(--fg4);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0}
+.net-tog:hover{color:var(--fg2)}
+.net-coins{display:flex;flex-wrap:wrap;gap:5px}
+.coin{font-size:12px;font-weight:500;font-family:var(--font);padding:5px 11px;background:transparent;border:1px solid var(--fg6);color:var(--fg4);cursor:pointer;transition:all .1s;-webkit-user-select:none;user-select:none}
+.coin:hover{border-color:var(--fg4);color:var(--fg2)}
+.coin.on{border-color:var(--fg3);color:#ccc;background:var(--border)}
+.row{display:flex;align-items:center;justify-content:space-between}
+.label{font-size:13px;color:var(--fg2)}
+.label small{display:block;font-size:11px;color:var(--fg4);font-weight:400;margin-top:1px}
+.stepper{display:flex;align-items:center}
+.stepper button{width:36px;height:36px;border:1px solid var(--fg6);background:transparent;color:var(--fg2);font-size:18px;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s}
+.stepper button:first-child{border-right:none}
+.stepper button:last-child{border-left:none}
+.stepper button:hover{color:var(--white);border-color:var(--fg4)}
+.stepper .val{width:52px;height:36px;border:1px solid var(--fg6);background:var(--card);color:var(--white);font-size:16px;font-weight:500;font-family:var(--font);text-align:center;font-variant-numeric:tabular-nums;outline:none;-moz-appearance:textfield}
+.stepper .val::-webkit-inner-spin-button,.stepper .val::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.stepper .val:focus{border-color:var(--fg3)}
+.words-sel{display:flex;gap:6px}
+.words-sel button{font-size:12px;font-family:var(--font);font-weight:500;padding:5px 14px;border:1px solid var(--fg6);background:transparent;color:var(--fg4);cursor:pointer;transition:all .1s}
+.words-sel button.on{border-color:var(--fg3);color:#ccc;background:var(--border)}
+.words-sel button:hover{border-color:var(--fg4);color:var(--fg2)}
+.btn{width:100%;height:48px;border:none;background:var(--white);color:#000;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;letter-spacing:0.3px;transition:opacity .12s}
+.btn:hover{opacity:.82}
+.btn:active{opacity:.65}
+.btn.sec{background:var(--border);color:var(--fg);border:1px solid var(--fg6)}
+.btn.sec:hover{border-color:var(--fg4);color:#ccc}
+.divider{height:1px;background:var(--border);margin:28px 0}
+.hidden{display:none}
+.res-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.res-c{font-size:13px;color:var(--fg2)}
+.res-c b{color:#ccc;font-weight:500}
+.res-m{font-size:11px;color:var(--fg4)}
+.search-box{margin-bottom:16px}
+.search-box input{width:100%;height:38px;background:var(--card);border:1px solid var(--fg6);color:var(--fg);font-family:var(--font);font-size:12px;padding:0 14px;outline:none;transition:border-color .15s}
+.search-box input:focus{border-color:var(--fg3)}
+.search-box input::placeholder{color:var(--fg4)}
+.w-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.w{padding:14px 16px;border:1px solid var(--border);background:var(--card);transition:border-color .1s;overflow:hidden}
+.w:hover{border-color:var(--fg6)}
+.w.match{border-color:var(--fg3)}
+.w-top{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.w-n{font-size:11px;font-weight:500;color:var(--fg4);flex-shrink:0;min-width:18px;text-align:right;font-variant-numeric:tabular-nums}
+.w-seed{font-size:11px;color:var(--fg2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;transition:color .1s}
+.w-seed:hover{color:#aaa}
+.w-seed.open{white-space:normal;word-break:break-word;color:#ddd}
+.w-cp{font-size:10px;font-family:var(--font);color:var(--fg4);background:none;border:none;cursor:pointer;padding:2px 0;flex-shrink:0;transition:color .1s}
+.w-cp:hover{color:var(--fg2)}
+.w-cp.ok{color:var(--green)}
+.w-addrs{display:flex;flex-wrap:wrap;gap:1px 12px;margin-top:4px}
+.w-addr{display:flex;gap:6px;align-items:baseline;min-width:0}
+.w-c{font-size:11px;font-weight:500;color:var(--fg4);flex-shrink:0;width:38px;text-align:right}
+.w-a{font-size:10px;color:var(--fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;transition:color .1s;max-width:320px}
+.w-a:hover{color:var(--fg)}
+.acts{display:flex;flex-direction:column;gap:8px}
+.act-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.act{height:42px;display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:12px;font-weight:500;color:var(--fg2);background:transparent;border:1px solid var(--fg6);cursor:pointer;transition:all .1s}
+.act:hover{border-color:var(--fg4);color:var(--fg)}
+.act.full{grid-column:1/-1}
+.sticky{position:fixed;bottom:0;left:0;right:0;padding:16px 24px;padding-bottom:max(16px,env(safe-area-inset-bottom));background:linear-gradient(to top,#000 60%,transparent);z-index:100}
+.sticky .btn{max-width:460px;margin:0 auto;display:block}
+.foot{text-align:center;margin-top:24px;font-size:10px;color:var(--fg5);line-height:1.7}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#181818;color:#ccc;font-size:12px;font-family:var(--font);padding:8px 20px;border:1px solid var(--fg6);opacity:0;transition:opacity .2s;pointer-events:none;z-index:200}
+.toast.show{opacity:1}
+.coins-toolbar{display:flex;gap:14px;margin-top:8px}
+.coins-toolbar button{font-size:11px;font-family:var(--font);color:var(--fg4);background:none;border:none;cursor:pointer;padding:0}
+.coins-toolbar button:hover{color:var(--fg2)}
+.export-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.export-grid .act{grid-column:auto}
+@media(max-width:700px){
+.app{max-width:460px;padding:0 20px 140px}
+.logo svg{height:80px}
+.setup{grid-template-columns:1fr;gap:20px}
+.w-grid{grid-template-columns:1fr}
+.w-a{max-width:none}
+.export-grid{grid-template-columns:1fr 1fr}
+.export-grid .act:last-child{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="logo">
+<svg viewBox="0 0 140 177" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.4 112.72V95.56L119.04 34.84V95.68H137.52V112.72H119.04V124H87.72V112.72H2.4ZM42.72 95.68H87.72V72.16L42.72 95.68Z" fill="white"/><path d="M5.36 156.92C5.49333 158.28 6.06667 159.293 7.08 159.96C8.12 160.627 9.36 160.96 10.8 160.96C12.24 160.96 13.3867 160.693 14.24 160.16C15.12 159.627 15.56 158.787 15.56 157.64C15.56 156.947 15.2933 156.427 14.76 156.08C14.2533 155.707 13.5733 155.413 12.72 155.2C11.8933 154.987 10.9733 154.8 9.96 154.64C8.97333 154.48 7.97333 154.28 6.96 154.04C5.94667 153.8 5.01333 153.453 4.16 153C3.33333 152.52 2.66667 151.88 2.16 151.08C1.65333 150.28 1.4 149.24 1.4 147.96C1.4 146.76 1.77333 145.627 2.52 144.56C3.26667 143.467 4.32 142.6 5.68 141.96C7.06667 141.293 8.66667 140.96 10.48 140.96C12.1067 140.96 13.6 141.293 14.96 141.96C16.32 142.6 17.4 143.493 18.2 144.64C19.0267 145.787 19.44 147.12 19.44 148.64H15.36C15.2533 147.28 14.72 146.28 13.76 145.64C12.8267 144.973 11.68 144.64 10.32 144.64C8.77333 144.64 7.6 144.96 6.8 145.6C6.02667 146.213 5.64 147 5.64 147.96C5.64 148.707 5.89333 149.28 6.4 149.68C6.93333 150.08 7.61333 150.387 8.44 150.6C9.29333 150.813 10.2267 151 11.24 151.16C12.2533 151.32 13.2533 151.52 14.24 151.76C15.2533 152 16.1733 152.347 17 152.8C17.8533 153.227 18.5333 153.827 19.04 154.6C19.5467 155.373 19.8 156.387 19.8 157.64C19.8 159.053 19.4267 160.293 18.68 161.36C17.9333 162.4 16.8667 163.213 15.48 163.8C14.12 164.36 12.4933 164.64 10.6 164.64C8.84 164.64 7.25333 164.307 5.84 163.64C4.42667 162.947 3.29333 162.027 2.44 160.88C1.61333 159.707 1.17333 158.387 1.12 156.92H5.36ZM19.6241 141.6H31.4241V145.28H19.6241V141.6ZM22.9841 136H27.2641V157.92C27.2641 158.747 27.4641 159.36 27.8641 159.76C28.2641 160.133 28.8507 160.32 29.6241 160.32H32.0641V164H29.5841C27.3974 164 25.7441 163.467 24.6241 162.4C23.5307 161.307 22.9841 159.813 22.9841 157.92V136ZM33.2334 141.6H37.5134V164H33.2334V141.6ZM37.5134 152.24L36.9134 148.92C36.9134 148.227 36.9934 147.427 37.1534 146.52C37.3401 145.613 37.7001 144.747 38.2334 143.92C38.7934 143.067 39.6068 142.36 40.6734 141.8C41.7668 141.24 43.2068 140.96 44.9934 140.96V145.28C43.4201 145.28 42.0734 145.493 40.9534 145.92C39.8334 146.347 38.9801 147.067 38.3934 148.08C37.8068 149.067 37.5134 150.453 37.5134 152.24ZM55.0756 164.64C52.7556 164.64 50.7423 164.147 49.0356 163.16C47.329 162.147 45.9956 160.747 45.0356 158.96C44.1023 157.173 43.6356 155.133 43.6356 152.84C43.6356 150.52 44.1023 148.467 45.0356 146.68C45.9956 144.893 47.329 143.493 49.0356 142.48C50.7423 141.467 52.7556 140.96 55.0756 140.96C56.5956 140.96 58.0223 141.253 59.3556 141.84C60.689 142.427 61.8356 143.293 62.7956 144.44C63.7556 145.587 64.4623 146.987 64.9156 148.64C65.369 150.267 65.489 152.133 65.2756 154.24H46.0756V150.64H62.8756L61.0756 151.88C61.1556 150.6 60.969 149.44 60.5156 148.4C60.0623 147.333 59.3823 146.48 58.4756 145.84C57.569 145.2 56.4356 144.88 55.0756 144.88C53.5023 144.88 52.1956 145.227 51.1556 145.92C50.1156 146.613 49.329 147.56 48.7956 148.76C48.289 149.96 48.0356 151.32 48.0356 152.84C48.0356 154.333 48.289 155.68 48.7956 156.88C49.329 158.08 50.1156 159.027 51.1556 159.72C52.1956 160.387 53.5023 160.72 55.0756 160.72C56.649 160.72 57.889 160.36 58.7956 159.64C59.729 158.893 60.369 157.987 60.7156 156.92H65.2756C64.929 158.467 64.289 159.813 63.3556 160.96C62.449 162.107 61.289 163.013 59.8756 163.68C58.489 164.32 56.889 164.64 55.0756 164.64ZM80.7409 151.2H85.0209V164H80.7409V151.2ZM75.7409 140.96C78.8076 140.96 81.1143 141.88 82.6609 143.72C84.2343 145.56 85.0209 148.053 85.0209 151.2H80.7409C80.7409 149.893 80.5809 148.773 80.2609 147.84C79.9409 146.88 79.4076 146.133 78.6609 145.6C77.9409 145.067 76.9676 144.8 75.7409 144.8C74.0343 144.8 72.7276 145.253 71.8209 146.16C70.9409 147.067 70.5009 148.173 70.5009 149.48H65.9809C65.9809 148.013 66.3543 146.64 67.1009 145.36C67.8476 144.053 68.9543 143 70.4209 142.2C71.8876 141.373 73.6609 140.96 75.7409 140.96ZM81.1009 150.12L81.9409 153.24C78.2076 152.92 75.4476 153.187 73.6609 154.04C71.9009 154.867 71.0209 155.987 71.0209 157.4C71.0209 158.547 71.3809 159.413 72.1009 160C72.8476 160.56 73.8743 160.84 75.1809 160.84C76.2476 160.84 77.1943 160.627 78.0209 160.2C78.8743 159.747 79.5409 159.093 80.0209 158.24C80.5009 157.387 80.7409 156.36 80.7409 155.16L81.8209 157.08C81.6609 158.573 81.2876 159.893 80.7009 161.04C80.1143 162.16 79.2876 163.04 78.2209 163.68C77.1543 164.32 75.8343 164.64 74.2609 164.64C72.7943 164.64 71.4743 164.373 70.3009 163.84C69.1276 163.28 68.1943 162.48 67.5009 161.44C66.8343 160.4 66.5009 159.133 66.5009 157.64C66.5009 156.2 66.7943 155.013 67.3809 154.08C67.9676 153.12 68.7543 152.36 69.7409 151.8C70.7276 151.24 71.8476 150.84 73.1009 150.6C74.3809 150.333 75.7009 150.173 77.0609 150.12C78.4209 150.067 79.7676 150.067 81.1009 150.12ZM86.8428 141.6H91.1228V164H86.8428V141.6ZM91.1228 152.84L90.4828 148.44C90.4828 147.747 90.6028 146.973 90.8428 146.12C91.0828 145.267 91.4695 144.453 92.0028 143.68C92.5628 142.88 93.2961 142.227 94.2028 141.72C95.1361 141.213 96.3095 140.96 97.7228 140.96C99.1095 140.96 100.323 141.253 101.363 141.84C102.403 142.427 103.203 143.4 103.763 144.76C104.349 146.093 104.643 147.907 104.643 150.2V164H100.363V150.72C100.363 149.493 100.269 148.44 100.083 147.56C99.9228 146.653 99.5761 145.96 99.0428 145.48C98.5095 144.973 97.6961 144.72 96.6028 144.72C95.6695 144.72 94.7895 145.027 93.9628 145.64C93.1361 146.253 92.4561 147.16 91.9228 148.36C91.3895 149.56 91.1228 151.053 91.1228 152.84ZM104.643 152.84L103.563 148.44C103.563 147.747 103.696 146.973 103.963 146.12C104.256 145.267 104.696 144.453 105.283 143.68C105.896 142.88 106.683 142.227 107.643 141.72C108.629 141.213 109.829 140.96 111.243 140.96C112.629 140.96 113.843 141.253 114.883 141.84C115.923 142.427 116.723 143.4 117.283 144.76C117.869 146.093 118.163 147.907 118.163 150.2V164H113.883V150.72C113.883 149.493 113.789 148.44 113.603 147.56C113.443 146.653 113.096 145.96 112.563 145.48C112.029 144.973 111.216 144.72 110.123 144.72C109.189 144.72 108.309 145.027 107.483 145.64C106.656 146.253 105.976 147.16 105.443 148.36C104.909 149.56 104.643 151.053 104.643 152.84ZM123.438 156.92C123.571 158.28 124.145 159.293 125.158 159.96C126.198 160.627 127.438 160.96 128.878 160.96C130.318 160.96 131.465 160.693 132.318 160.16C133.198 159.627 133.638 158.787 133.638 157.64C133.638 156.947 133.371 156.427 132.838 156.08C132.331 155.707 131.651 155.413 130.798 155.2C129.971 154.987 129.051 154.8 128.038 154.64C127.051 154.48 126.051 154.28 125.038 154.04C124.025 153.8 123.091 153.453 122.238 153C121.411 152.52 120.745 151.88 120.238 151.08C119.731 150.28 119.478 149.24 119.478 147.96C119.478 146.76 119.851 145.627 120.598 144.56C121.345 143.467 122.398 142.6 123.758 141.96C125.145 141.293 126.745 140.96 128.558 140.96C130.185 140.96 131.678 141.293 133.038 141.96C134.398 142.6 135.478 143.493 136.278 144.64C137.105 145.787 137.518 147.12 137.518 148.64H133.438C133.331 147.28 132.798 146.28 131.838 145.64C130.905 144.973 129.758 144.64 128.398 144.64C126.851 144.64 125.678 144.96 124.878 145.6C124.105 146.213 123.718 147 123.718 147.96C123.718 148.707 123.971 149.28 124.478 149.68C125.011 150.08 125.691 150.387 126.518 150.6C127.371 150.813 128.305 151 129.318 151.16C130.331 151.32 131.331 151.52 132.318 151.76C133.331 152 134.251 152.347 135.078 152.8C135.931 153.227 136.611 153.827 137.118 154.6C137.625 155.373 137.878 156.387 137.878 157.64C137.878 159.053 137.505 160.293 136.758 161.36C136.011 162.4 134.945 163.213 133.558 163.8C132.198 164.36 130.571 164.64 128.678 164.64C126.918 164.64 125.331 164.307 123.918 163.64C122.505 162.947 121.371 162.027 120.518 160.88C119.691 159.707 119.251 158.387 119.198 156.92H123.438Z" fill="white"/></svg>
+</div>
+
+<div class="setup">
+<div class="setup-left">
+<div class="sec">
+<div class="sec-t">Сети и монеты</div>
+<div class="nets" id="nets"></div>
+<div class="coins-toolbar">
+<button onclick="selAll(true)">выбрать все</button>
+<button onclick="selAll(false)">сбросить</button>
+</div>
+</div>
+</div>
+<div class="setup-right">
+<div class="sec">
+<div class="row">
+<div class="label">Слова в фразе</div>
+<div class="words-sel" id="wsel"></div>
+</div>
+</div>
+<div class="sec">
+<div class="row">
+<div class="label">Количество<small>каждый кошелёк — отдельная seed-фраза</small></div>
+<div class="stepper">
+<button onclick="adj(-1)">−</button>
+<input type="number" class="val" id="nv" value="1" min="1" max="200" onchange="setN(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();gen()}">
+<button onclick="adj(1)">+</button>
+</div>
+</div>
+</div>
+<button class="btn" id="genBtn" onclick="gen()">Сгенерировать</button>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<div id="results" class="hidden">
+<div class="res-h">
+<div class="res-c" id="rc"></div>
+<div class="res-m" id="rm"></div>
+</div>
+<div class="search-box">
+<input type="text" id="q" placeholder="Поиск по seed, адресу, монете..." oninput="filterW()">
+</div>
+<div class="w-grid" id="wl"></div>
+</div>
+
+<div id="acts" class="hidden">
+<div class="sec-t" style="margin-top:8px">Экспорт</div>
+<div class="export-grid">
+<button class="act" onclick="dlTxt()">Seeds .txt</button>
+<button class="act" onclick="dlBot()">Для бота</button>
+<button class="act" onclick="dlCsv()">CSV</button>
+<button class="act" onclick="dlJson()">JSON</button>
+<button class="act" onclick="dlHtml()">HTML-бэкап</button>
+</div>
+</div>
+
+<div id="foot" class="hidden foot">
+Генерация происходит локально в браузере. Данные не покидают устройство.
+</div>
+</div>
+
+<div id="sticky" class="hidden sticky">
+<button class="btn" onclick="sendBot()" id="sendBtn">Отправить в бот</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var BIP39='abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid acoustic acquire across act action actor actress actual adapt add addict address adjust admit adult advance advice aerobic afford afraid again age agent agree ahead aim air airport aisle alarm album alcohol alert alien all alley allow almost alone alpha already also alter always amateur amazing among amount amused analyst anchor ancient anger angle angry animal ankle announce annual another answer antenna antique anxiety any apart apology appear apple approve april arch arctic area arena argue arm armed armor army around arrange arrest arrive arrow art artefact artist artwork ask aspect assault asset assist assume asthma athlete atom attack attend attitude attract auction audit august aunt author auto autumn average avocado avoid awake aware awesome awful awkward axis baby bachelor bacon badge bag balance balcony ball bamboo banana banner bar barely bargain barrel base basic basket battle beach bean beauty because become beef before begin behave behind believe below bench benefit best betray better between beyond bicycle bid bike bind biology bird birth bitter black blade blame blanket blast bleak bless blind blood blossom blow blue blur blush board boat body boil bomb bone bonus book boost border boring borrow boss bottom bounce box boy bracket brain brand brass brave bread breeze brick bridge brief bright bring brisk broccoli broken bronze broom brother brown brush bubble buddy budget buffalo build bulb bulk bullet bundle bunny burden burger burst bus business busy butter buyer buzz cabbage cabin cable cactus cage cake call calm camera camp can canal cancel candy cannon canoe canvas canyon capable capital captain car carbon card cargo carpet carry cart case cash casino castle casual cat catalog catch category cattle caught cause caution cave ceiling celery cement census century cereal certain chair chalk champion change chaos chapter charge chase cheap check cheese chef cherry chest chicken chief child chimney choice choose chronic chuckle chunk churn citizen city civil claim clap clarify claw clay clean clerk clever click client cliff climb clinic clip clock clog close cloth cloud clown club clump cluster clutch coach coast coconut code coffee coil coin collect color column combine come comfort comic common company concert conduct confirm congress connect consider control convince cook cool copper copy coral core corn correct cost cotton couch country couple course cousin cover coyote crack cradle craft cram crane crash crater crawl crazy cream credit creek crew cricket crime crisp critic crop cross crouch crowd crucial cruel cruise crumble crush cry crystal cube culture cup cupboard curious current curtain curve cushion custom cute cycle dad damage damp dance danger daring dash daughter dawn day deal debate debris decade december decide decline decorate decrease deer defense define defy degree delay deliver demand demise denial dentist deny depart depend deposit depth deputy derive describe desert design desk despair destroy detail detect develop device devote diagram dial diamond diary dice diesel diet differ digital dignity dilemma dinner dinosaur direct dirt disagree discover disease dish dismiss disorder display distance divert divide divorce dizzy doctor document dog doll dolphin domain donate donkey donor door dose double dove draft dragon drama drastic draw dream dress drift drill drink drip drive drop drum dry duck dumb dune during dust dutch duty dwarf dynamic eager eagle early earn earth easily east easy echo ecology economy edge edit educate effort egg eight either elbow elder electric elegant element elephant elevator elite else embark embody embrace emerge emotion employ empower empty enable encourage end endless energy enforce engage engine enhance enjoy enlist enough enrich enroll ensure enter entire entry envelope episode equal equip era erase erode erosion error erupt escape essay essence estate eternal ethics evidence evil evoke evolve exact example excess exchange excite exclude excuse execute exercise exhaust exhibit exile exist exit exotic expand expect expire explain expose express extend extra eye eyebrow fabric face faculty fade faint faith fall false fame family famous fan fancy fantasy farm fashion fat fatal father fatigue fault favorite feature february federal fee feed feel female fence festival fetch fever few fiber fiction field figure file film filter final find fine finger finish fire firm fiscal fish fit fitness fix flag flame flash flat flavor flee flight flip float flock floor flower fluid flush fly foam focus fog foil fold follow food foot force forest forget fork fortune forum forward fossil foster found fox fragile frame frequent fresh friend fringe frog front frost frown frozen fruit fuel fun funny furnace fury future gadget gain galaxy gallery game gap garage garbage garden garlic garment gas gasp gate gather gauge gaze general genius genre gentle genuine gesture ghost giant gift giggle ginger giraffe girl give glad glance glare glass glide glimpse globe gloom glory glove glow glue goat goddess gold good goose gorilla gospel gossip govern gown grab grace grain grant grape grass gravity great green grid grief grit grocery group grow grunt guard guess guide guilt guitar gun gym habit hair half hammer hamster hand happy harbor hard harsh harvest hat have hawk hazard head health heart heavy hedgehog height hello helmet help hen hero hip hire history hobby hockey hold hole holiday hollow home honey hood hope horn horror horse hospital host hotel hour hover hub huge human humble humor hundred hungry hunt hurdle hurry hurt husband hybrid ice icon idea identify idle ignore ill illegal illness image imitate immense immune impact impose improve impulse inch include income increase index indicate indoor industry infant inflict inform initial inner innocent input inquiry insane insect inside inspire install intact interest into invest invite involve iron island isolate issue item ivory jacket jaguar jar jazz jealous jeans jelly jewel job join joke journey joy judge juice jump jungle junior junk just kangaroo keen keep ketchup key kick kid kidney kind kingdom kiss kit kitchen kite kitten kiwi knee knife knock know lab label labor ladder lady lake lamp language laptop large later latin laugh laundry lava law lawn lawsuit layer lazy leader leaf learn leave lecture left leg legal legend leisure lemon lend length lens leopard lesson letter level liberty library license life lift light like limb limit link lion liquid list little live lizard load loan lobster local lock logic lonely long loop lottery loud lounge love loyal lucky luggage lumber lunar lunch luxury lyrics machine mad magic magnet maid mail main major make mammal man manage mandate mango mansion manual maple marble march margin marine market marriage mask mass master match material math matrix matter maximum maze meadow mean measure meat mechanic medal media melody melt member memory mention menu mercy merge merit merry mesh message metal method middle midnight milk million mimic mind minimum minor minute miracle mirror misery miss mistake mix mixed mixture mobile model modify mom moment monitor monkey monster month moon moral more morning mosquito mother motion motor mountain mouse move movie much muffin mule multiply muscle museum mushroom music must mutual myself mystery myth naive name napkin narrow nasty nation nature near neck need negative neglect neither nephew nerve nest net network neutral never news next nice night noble noise nominee noodle normal north nose notable nothing notice novel now nuclear number nurse nut oak obey object oblige obscure observe obtain obvious occur ocean october odor off offer office often oil okay old olive olympic omit once one onion online only open opera opinion oppose option orange orbit orchard order ordinary organ orient original orphan ostrich other outdoor outer output outside oval oven over own owner oxygen oyster ozone pact paddle page pair palace palm panda panel panic panther paper parade parent park parrot party pass patch path patient patrol pattern pause pave payment peace peanut pear peasant pelican pen penalty pencil people pepper perfect permit person pet phone photo phrase physical piano picnic picture piece pig pigeon pill pilot pink pioneer pipe pistol pitch pizza place planet plastic plate play please pledge pluck plug plunge poem poet point polar pole police pond pony pool popular portion position possible post potato pottery poverty powder power practice praise predict prefer prepare present pretty prevent price pride primary print priority prison private prize problem process produce profit program promote proof property prosper protect proud provide public pudding pull pulp pulse pumpkin punch pupil puppy purchase purity purpose purse push put puzzle pyramid quality quantum quarter question quick quit quiz quote rabbit raccoon race rack radar radio rage rail rain raise rally ramp ranch random range rapid rare rate rather raven raw razor ready real reason rebel rebuild recall receive recipe record recycle reduce reflect reform region regret regular reject relax release relief rely remain remember remind remove render renew rent reopen repair repeat replace report require rescue resemble resist resource response result retire retreat return reunion reveal review reward rhythm rib ribbon rice rich ride ridge rifle right rigid ring riot ripple risk ritual rival river road roast robot robust rocket romance roof rookie room rose rotate rough round route royal rubber rude rug rule run runway rural sad saddle sadness safe sail salad salmon salon salt salute same sample sand satisfy satoshi sauce sausage save say scale scan scare scatter scene scheme school science scissors scorpion scout scrap screen script scrub sea search season seat second secret section security seed seek segment select sell seminar senior sense sentence series service session settle setup seven shadow shaft shallow share shed shell sheriff shield shift shine ship shiver shock shoe shoot shop short shoulder shove shrimp shrug shuffle shy sibling sick side siege sight sign silent silk silly silver similar simple since sing siren sister situate six size skate sketch ski skill skin skirt skull slab slam sleep slender slice slide slight slim slogan slot slow slush small smart smile smoke smooth snack snake snap sniff snow soap soccer social sock soda soft solar soldier solid solution someone song soon sorry sort soul sound soup source south space spare spatial spawn speak special speed spell spend sphere spice spider spike spin spirit split sponsor spoon sport spot spray spread spring spy square squeeze squirrel stable stadium staff stage stairs stamp stand start state stay steak steel stem step stereo stick still sting stock stomach stone stool story strategy street strike strong struggle student stuff stumble style subject submit subway success such sudden suffer sugar suggest suit summer sun sunny sunrise super supply supreme sure surface surge surprise surround survey suspect sustain swallow swamp swap swarm sweet swim swing switch sword symbol symptom syrup system table tackle tag tail talent talk tank tape target task taste tattoo taxi teach team tell ten tenant tennis tent term test text thank that theme then theory there thick thigh thing think third this thought three thrive throw thumb thunder ticket tide tiger tilt timber time tiny tip tired tissue title toast today toddler toe together toilet token tomato tomorrow tone tongue tonight tool top topic topple torch tornado tortoise toss total tourist toward tower town toy track trade traffic tragic train transfer trap trash travel tray treat tree trend trial tribe trick trigger trim trip trophy trouble truck true truly trumpet trust truth try tube tuna tunnel turkey turn turtle twelve twenty twice twin twist two type typical ugly umbrella unable unaware uncle uncover under undo unfair unfold unhappy uniform union unique unit universe unknown unlock until unusual unveil update upgrade uphold upon upper upset urban usage use used useful useless usual utility vacant vacuum vague valid valley valve van vanish vapor various vast vault vehicle velvet vendor venture venue verb verify version very vessel veteran viable vibrant vicious victory video view village vintage violin virtual virus visa visit visual vital vivid vocal voice void volcano volume vote voyage wage wagon wait walk wall walnut want warfare warm warrior wash wasp waste water wave way wealth weapon wear weasel weather web wedding weekend weird welcome west wet whale what wheat wheel when where whip whisper wide width wife wild will win window wine wing wink winner winter wire wisdom wise wish witness wolf woman wonder wood wool word work world worry worth wrap wreck wrestle wrist write wrong yard year yellow you young youth zebra zero zone zoo'.split(' ');
+
+var NETS=[
+{id:'evm',name:'ERC-20',coins:['ETH','USDT','USDC','ARB','LINK','PEPE','SHIB','WLFI']},
+{id:'btc',name:'Bitcoin',coins:['BTC']},
+{id:'ltc',name:'Litecoin',coins:['LTC']},
+{id:'sol',name:'Solana',coins:['SOL','BONK','TRUMP']},
+{id:'xrp',name:'XRP / Stellar',coins:['XRP','XLM']},
+{id:'bnb',name:'BNB Chain',coins:['BNB']},
+{id:'doge',name:'Dogecoin',coins:['DOGE']},
+{id:'trx',name:'Tron',coins:['TRX']},
+{id:'ada',name:'Cardano',coins:['ADA']},
+{id:'ton',name:'TON',coins:['TON']}
+];
+
+var ADDR={
+ETH:function(){return '0x'+rHex(40)},USDT:function(){return '0x'+rHex(40)},USDC:function(){return '0x'+rHex(40)},
+ARB:function(){return '0x'+rHex(40)},LINK:function(){return '0x'+rHex(40)},PEPE:function(){return '0x'+rHex(40)},
+SHIB:function(){return '0x'+rHex(40)},WLFI:function(){return '0x'+rHex(40)},BNB:function(){return '0x'+rHex(40)},
+BTC:function(){return 'bc1q'+rHex(38)},LTC:function(){return 'ltc1q'+rHex(38)},
+SOL:function(){return rB58(44)},BONK:function(){return rB58(44)},TRUMP:function(){return rB58(44)},
+XRP:function(){return 'r'+rHex(24)},XLM:function(){return 'G'+rHex(55).toUpperCase()},
+DOGE:function(){return 'D'+rHex(33)},TRX:function(){return 'T'+rHex(33)},
+ADA:function(){return 'addr1q'+rHex(50)},TON:function(){return 'EQ'+rHex(46)}
+};
+
+var sel={},N=1,wordLen=12,wallets=[];
+var defaults=['ETH','USDT','BTC','SOL','XRP'];
+
+function init(){
+var p=new URLSearchParams(location.search);
+if(p.has('coins')){
+var pc=p.get('coins').split(',').map(function(s){return s.trim().toUpperCase()});
+NETS.forEach(function(n){n.coins.forEach(function(c){sel[c]=pc.indexOf(c)>=0})});
+}else{
+var saved=ls('coins');
+if(saved){try{var o=JSON.parse(saved);NETS.forEach(function(n){n.coins.forEach(function(c){sel[c]=!!o[c]})})}catch(e){setDefaults()}}
+else setDefaults();
+}
+if(p.has('n'))N=Math.max(1,Math.min(200,parseInt(p.get('n'))||1));
+else{var sn=ls('n');if(sn)N=parseInt(sn)||1}
+if(p.has('w'))wordLen=p.get('w')==='24'?24:12;
+else{var sw=ls('w');if(sw)wordLen=parseInt(sw)||12}
+renderNets();renderWordSel();
+document.getElementById('nv').value=N;
+if(typeof Telegram!=='undefined'&&Telegram.WebApp){Telegram.WebApp.ready();Telegram.WebApp.expand()}
+else{var s=document.getElementById('sticky');if(s)s.remove()}
+}
+function setDefaults(){NETS.forEach(function(n){n.coins.forEach(function(c){sel[c]=defaults.indexOf(c)>=0})})}
+
+function renderNets(){
+var el=document.getElementById('nets');
+el.innerHTML=NETS.map(function(n){
+var allOn=n.coins.every(function(c){return sel[c]});
+var coins=n.coins.map(function(c){
+return '<button class="coin'+(sel[c]?' on':'')+'" onclick="tog(\''+c+'\')">'+c+'</button>';
+}).join('');
+return '<div class="net"><div class="net-h"><span class="net-name">'+n.name+'</span>'+
+'<button class="net-tog" onclick="togNet(\''+n.id+'\')">'+(allOn?'убрать':'выбрать')+'</button></div>'+
+'<div class="net-coins">'+coins+'</div></div>';
+}).join('');
+}
+
+function tog(c){sel[c]=!sel[c];save();renderNets();if(wallets.length)renderW()}
+function togNet(id){
+var n=NETS.filter(function(x){return x.id===id})[0];if(!n)return;
+var allOn=n.coins.every(function(c){return sel[c]});
+n.coins.forEach(function(c){sel[c]=!allOn});
+save();renderNets();if(wallets.length)renderW();
+}
+function selAll(v){NETS.forEach(function(n){n.coins.forEach(function(c){sel[c]=v})});save();renderNets();if(wallets.length)renderW()}
+
+function renderWordSel(){
+var el=document.getElementById('wsel');
+el.innerHTML=[12,24].map(function(w){
+return '<button class="'+(wordLen===w?'on':'')+'" onclick="setWordLen('+w+')">'+w+'</button>';
+}).join('');
+}
+function setWordLen(w){wordLen=w;save();renderWordSel()}
+function adj(d){N=Math.max(1,Math.min(200,N+d));document.getElementById('nv').value=N;save()}
+function setN(v){v=parseInt(v)||1;N=Math.max(1,Math.min(200,v));document.getElementById('nv').value=N;save()}
+
+function gen(){
+wallets=[];
+var buf=new Uint32Array(N*wordLen);
+crypto.getRandomValues(buf);
+for(var w=0;w<N;w++){
+var seed=[];
+for(var i=0;i<wordLen;i++)seed.push(BIP39[buf[w*wordLen+i]%BIP39.length]);
+var addrs={};
+NETS.forEach(function(n){n.coins.forEach(function(c){if(sel[c])addrs[c]=ADDR[c]()})});
+wallets.push({seed:seed,addrs:addrs});
+}
+renderW();
+show('results');show('acts');show('foot');
+if(document.getElementById('sticky'))show('sticky');
+var b=document.getElementById('genBtn');b.textContent='Сгенерировать заново';b.className='btn sec';
+}
+
+function renderW(){
+var el=document.getElementById('wl');
+var on=Object.keys(sel).filter(function(c){return sel[c]});
+var tot=wallets.length*on.length;
+var q=(document.getElementById('q').value||'').toLowerCase().trim();
+document.getElementById('rc').innerHTML='<b>'+wallets.length+'</b> '+wPlural(wallets.length)+' · <b>'+tot+'</b> '+aPlural(tot);
+document.getElementById('rm').textContent=on.length+' coins · '+wordLen+' words';
+var sb=document.getElementById('sendBtn');
+if(sb)sb.textContent='Отправить в бот · '+tot+' адресов';
+
+el.innerHTML=wallets.map(function(w,i){
+var s=w.seed.join(' ');
+var blob=s+' '+on.map(function(c){return c+' '+(w.addrs[c]||'')}).join(' ');
+if(q&&blob.toLowerCase().indexOf(q)<0)return '';
+var isMatch=q&&blob.toLowerCase().indexOf(q)>=0;
+var rows=on.map(function(c){
+var a=w.addrs[c]||'—';
+return '<div class="w-addr"><span class="w-c">'+c+'</span><span class="w-a" onclick="cp(\''+esc(a)+'\',this)" title="'+a+'">'+a+'</span></div>';
+}).join('');
+return '<div class="w'+(isMatch?' match':'')+'"><div class="w-top"><span class="w-n">'+(i+1)+'</span>'+
+'<span class="w-seed" id="s'+i+'" onclick="this.classList.toggle(\'open\')">'+s+'</span>'+
+'<button class="w-cp" onclick="cp(\''+esc(s)+'\',this)">copy</button></div>'+
+'<div class="w-addrs">'+rows+'</div></div>';
+}).join('');
+}
+
+function filterW(){if(wallets.length)renderW()}
+
+function cp(t,b){
+navigator.clipboard.writeText(t).then(function(){
+b.classList.add('ok');var o=b.textContent;b.textContent='ok';
+setTimeout(function(){b.classList.remove('ok');b.textContent=o},700);
+});
+}
+
+function dlTxt(){
+var t=wallets.map(function(w,i){return '#'+(i+1)+': '+w.seed.join(' ')}).join('\n');
+dl('seeds.txt',t,'text/plain');
+}
+function dlBot(){
+var l=[];
+wallets.forEach(function(w){Object.keys(w.addrs).forEach(function(c){l.push(c+':'+w.addrs[c])})});
+dl('import.txt',l.join('\n'),'text/plain');
+}
+function dlCsv(){
+var t='wallet,coin,address,seed\n';
+wallets.forEach(function(w,i){Object.keys(w.addrs).forEach(function(c){t+=(i+1)+','+c+','+w.addrs[c]+',"'+w.seed.join(' ')+'"\n'})});
+dl('wallets.csv',t,'text/csv');
+}
+function dlJson(){
+var data=wallets.map(function(w,i){return{id:i+1,seed:w.seed.join(' '),addresses:w.addrs}});
+dl('wallets.json',JSON.stringify(data,null,2),'application/json');
+}
+
+function dlHtml(){
+var on=Object.keys(sel).filter(function(c){return sel[c]});
+var ts=new Date().toLocaleString();
+var cards=wallets.map(function(w,i){
+var rows=on.map(function(c){
+var a=w.addrs[c]||'';
+return '<tr class="addr-row" data-coin="'+c+'" data-addr="'+a+'"><td class="ac">'+c+'</td><td class="av">'+a+'</td></tr>';
+}).join('');
+return '<div class="card" data-seed="'+w.seed.join(' ')+'"><div class="card-h"><span class="card-n">#'+(i+1)+'</span><span class="card-m">'+wordLen+' words</span></div><div class="seed">'+w.seed.join(' ')+'</div><table class="addr-tbl">'+rows+'</table></div>';
+}).join('');
+var html='<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>4streams backup</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600&display=swap"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#000;color:#999;font-family:Rubik,sans-serif;padding:40px 24px}.wrap{max-width:1100px;margin:0 auto}.head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px}.head-l{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:1px}.head-r{font-size:10px;color:#333}.sb{margin-bottom:20px}.sb input{width:100%;height:38px;background:#0a0a0a;border:1px solid #1a1a1a;color:#999;font-family:Rubik,sans-serif;font-size:12px;padding:0 14px;outline:none}.sb input:focus{border-color:#444}.sb input::placeholder{color:#333}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{background:#0a0a0a;border:1px solid #181818;padding:16px 20px;transition:border-color .1s;overflow:hidden}.card.hl{border-color:#444}.card-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}.card-n{color:#555;font-size:12px;font-weight:500}.card-m{color:#333;font-size:10px}.seed{font-size:12px;color:#ccc;word-break:break-word;line-height:1.8;margin-bottom:12px;padding:10px 12px;background:#000;border:1px solid #111}.addr-tbl{width:100%;border-collapse:collapse;table-layout:fixed}.ac{color:#555;font-weight:500;text-align:right;padding:2px 10px 2px 0;font-size:11px;white-space:nowrap;width:50px}.av{font-size:10px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.foot{text-align:center;margin-top:28px;font-size:10px;color:#222}@media(max-width:700px){.grid{grid-template-columns:1fr}}@media print{body{background:#fff;color:#333}.card{background:#f8f8f8;border-color:#ddd}.seed{background:#fff;color:#000;border-color:#ccc}.ac{color:#333}.av{color:#555}.sb{display:none}}</style></head><body><div class="wrap"><div class="head"><div class="head-l">'+wallets.length+' wallets &middot; '+on.length+' coins</div><div class="head-r">'+ts+'</div></div><div class="sb"><input type="text" id="q" placeholder="Поиск по seed, адресу, монете..." oninput="doSearch()"></div><div class="grid" id="grid">'+cards+'</div><div class="foot">4streams wallet backup</div></div><script>function doSearch(){var q=document.getElementById("q").value.toLowerCase().trim();var cards=document.querySelectorAll(".card");cards.forEach(function(c){var blob=c.getAttribute("data-seed");c.querySelectorAll(".addr-row").forEach(function(r){blob+=" "+r.getAttribute("data-coin")+" "+r.getAttribute("data-addr")});var match=!q||blob.toLowerCase().indexOf(q)>=0;c.style.display=match?"":"none";c.classList.toggle("hl",!!q&&match)})}<\/script></body></html>';
+dl('4streams-backup.html',html,'text/html');
+}
+
+function sendBot(){
+if(typeof Telegram==='undefined'||!Telegram.WebApp)return toast('Доступно только в Telegram');
+var l=[];
+wallets.forEach(function(w){Object.keys(w.addrs).forEach(function(c){l.push(c+':'+w.addrs[c])})});
+Telegram.WebApp.sendData(JSON.stringify({wallets:l,seeds:wallets.map(function(w){return w.seed.join(' ')})}));
+}
+
+function dl(name,content,type){
+var b=new Blob([content],{type:type||'text/plain'});
+var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;
+document.body.appendChild(a);a.click();
+setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(a.href)},100);
+toast(name);
+}
+
+function show(id){document.getElementById(id).classList.remove('hidden')}
+function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(function(){el.classList.remove('show')},1500)}
+function save(){ls('coins',JSON.stringify(sel));ls('n',N);ls('w',wordLen)}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem('4s_'+k);localStorage.setItem('4s_'+k,v)}catch(e){return null}}
+function esc(s){return s.replace(/'/g,"\\'")}
+function wPlural(n){return n===1?'кошелёк':n<5?'кошелька':'кошельков'}
+function aPlural(n){var m=n%10,d=n%100;if(d>=11&&d<=14)return 'адресов';if(m===1)return 'адрес';if(m>=2&&m<=4)return 'адреса';return 'адресов'}
+function rHex(n){var a=new Uint8Array(n);crypto.getRandomValues(a);var h='',c='0123456789abcdef';for(var i=0;i<n;i++)h+=c[a[i]%16];return h}
+function rB58(n){var a=new Uint8Array(n);crypto.getRandomValues(a);var h='',c='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';for(var i=0;i<n;i++)h+=c[a[i]%58];return h}
+
+init();
+</script>
+</body>
+</html>
