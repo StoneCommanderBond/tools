@@ -184,10 +184,12 @@ var NETS=[
 {id:'xrp',name:'XRP / Stellar',coins:['XRP','XLM']},
 {id:'bnb',name:'BNB Chain',coins:['BNB']},
 {id:'doge',name:'Dogecoin',coins:['DOGE']},
-{id:'trx',name:'Tron',coins:['TRX']}
+{id:'trx',name:'Tron',coins:['TRX']},
+{id:'ada',name:'Cardano',coins:['ADA']},
+{id:'ton',name:'TON',coins:['TON']}
 ];
 
-var COIN_NET={ETH:'evm',USDT:'evm',USDC:'evm',ARB:'evm',LINK:'evm',PEPE:'evm',SHIB:'evm',WLFI:'evm',BNB:'evm',BTC:'btc',LTC:'ltc',SOL:'sol',BONK:'sol',TRUMP:'sol',XRP:'xrp',XLM:'xlm',DOGE:'doge',TRX:'trx'};
+var COIN_NET={ETH:'evm',USDT:'evm',USDC:'evm',ARB:'evm',LINK:'evm',PEPE:'evm',SHIB:'evm',WLFI:'evm',BNB:'evm',BTC:'btc',LTC:'ltc',SOL:'sol',BONK:'sol',TRUMP:'sol',XRP:'xrp',XLM:'xlm',DOGE:'doge',TRX:'trx',ADA:'ada',TON:'ton'};
 
 function modInv(a,m){a=((a%m)+m)%m;var r0=a,r1=m,s0=1n,s1=0n;while(r1!==0n){var q=r0/r1,t=r1;r1=r0-q*r1;r0=t;t=s1;s1=s0-q*s1;s0=t}return((s0%m)+m)%m}
 function b2bi(b){var r=0n;for(var i=0;i<b.length;i++)r=(r<<8n)|BigInt(b[i]);return r}
@@ -499,6 +501,145 @@ var c=crc16(payload.subarray(0,33));payload[33]=c&0xff;payload[34]=(c>>8)&0xff;
 return b32Enc(payload);
 }
 
+function blake2b(data,outLen){
+outLen=outLen||32;
+var IV=[0x6a09e667f3bcc908n,0xbb67ae8584caa73bn,0x3c6ef372fe94f82bn,0xa54ff53a5f1d36f1n,0x510e527fade682d1n,0x9b05688c2b3e6c1fn,0x1f83d9abfb41bd6bn,0x5be0cd19137e2179n];
+var SG=[[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],[14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3],[11,8,12,0,5,2,15,13,10,14,3,6,7,1,9,4],[7,9,3,1,13,12,11,14,2,6,5,10,4,0,15,8],[9,0,5,7,2,4,10,15,14,1,11,12,6,8,3,13],[2,12,6,10,0,11,8,3,4,13,7,5,15,14,1,9],[12,5,1,15,14,13,4,10,0,7,6,3,9,2,8,11],[13,11,7,14,12,1,3,9,5,0,15,4,8,6,2,10],[6,15,14,9,11,3,0,8,12,2,13,7,1,4,10,5],[10,2,8,4,7,6,1,5,15,11,9,14,3,12,13,0],[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],[14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3]];
+var M=0xFFFFFFFFFFFFFFFFn;
+function rot(x,n){return((x>>BigInt(n))|(x<<BigInt(64-n)))&M}
+function G(v,a,b,c,d,x,y){v[a]=(v[a]+v[b]+x)&M;v[d]=rot(v[d]^v[a],32);v[c]=(v[c]+v[d])&M;v[b]=rot(v[b]^v[c],24);v[a]=(v[a]+v[b]+y)&M;v[d]=rot(v[d]^v[a],16);v[c]=(v[c]+v[d])&M;v[b]=rot(v[b]^v[c],63)}
+var h=IV.slice();
+h[0]^=BigInt(0x01010000|outLen);
+var ml=data.length,nb=Math.max(1,Math.ceil(ml/128)),pad=new Uint8Array(nb*128);
+pad.set(data);
+for(var bi=0;bi<nb;bi++){
+var off=bi*128,last=bi===nb-1,t=last?BigInt(ml):BigInt((bi+1)*128);
+var m=[];for(var i=0;i<16;i++){var w=0n;for(var j=0;j<8;j++)w|=BigInt(pad[off+i*8+j])<<BigInt(j*8);m.push(w)}
+var v=h.concat(IV.slice());
+v[12]^=t&M;
+if(last)v[14]=(~v[14])&M;
+for(var r=0;r<12;r++){var s=SG[r];G(v,0,4,8,12,m[s[0]],m[s[1]]);G(v,1,5,9,13,m[s[2]],m[s[3]]);G(v,2,6,10,14,m[s[4]],m[s[5]]);G(v,3,7,11,15,m[s[6]],m[s[7]]);G(v,0,5,10,15,m[s[8]],m[s[9]]);G(v,1,6,11,12,m[s[10]],m[s[11]]);G(v,2,7,8,13,m[s[12]],m[s[13]]);G(v,3,4,9,14,m[s[14]],m[s[15]])}
+for(var i=0;i<8;i++)h[i]=(h[i]^v[i]^v[i+8])&M;
+}
+var out=new Uint8Array(outLen);
+for(var i=0;i<outLen;i++)out[i]=Number((h[i>>3]>>BigInt((i&7)*8))&0xFFn);
+return out;
+}
+
+function ePubDirect(kL){
+var k=0n;for(var i=0;i<32;i++)k|=BigInt(kL[i])<<BigInt(i*8);
+var pt=eMulB(k);
+var r=new Uint8Array(32),yy=pt[1];
+for(var i=0;i<32;i++){r[i]=Number(yy&0xffn);yy>>=8n}
+if(pt[0]&1n)r[31]|=0x80;
+return r;
+}
+
+function mnToEntropy(words){
+var bits=[];
+for(var i=0;i<words.length;i++){var idx=BIP39.indexOf(words[i]);for(var j=10;j>=0;j--)bits.push((idx>>j)&1)}
+var eb=words.length*4/3;
+var entropy=new Uint8Array(eb);
+for(var i=0;i<eb;i++){var b=0;for(var j=0;j<8;j++)b=(b<<1)|bits[i*8+j];entropy[i]=b}
+return entropy;
+}
+
+async function icarusMasterKey(words){
+var ent=mnToEntropy(words);
+var key=await crypto.subtle.importKey('raw',new TextEncoder().encode(''),'PBKDF2',false,['deriveBits']);
+var r=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:ent,iterations:4096,hash:'SHA-512'},key,768));
+r[0]&=248;r[31]&=31;r[31]|=64;
+return{kL:r.slice(0,32),kR:r.slice(32,64),cc:r.slice(64,96)};
+}
+
+async function deriveAdaChild(kL,kR,cc,idx){
+var hard=idx>=0x80000000;
+var le4=new Uint8Array(4);le4[0]=idx&0xff;le4[1]=(idx>>8)&0xff;le4[2]=(idx>>16)&0xff;le4[3]=(idx>>24)&0xff;
+var zData,cData;
+if(hard){
+zData=new Uint8Array(69);zData[0]=0;zData.set(kL,1);zData.set(kR,33);zData.set(le4,65);
+cData=new Uint8Array(69);cData[0]=1;cData.set(kL,1);cData.set(kR,33);cData.set(le4,65);
+}else{
+var pub=ePubDirect(kL);
+zData=new Uint8Array(37);zData[0]=2;zData.set(pub,1);zData.set(le4,33);
+cData=new Uint8Array(37);cData[0]=3;cData.set(pub,1);cData.set(le4,33);
+}
+var Z=await hmac512(cc,zData);
+var cNew=(await hmac512(cc,cData)).slice(32);
+var zL=0n,kLn=0n;
+for(var i=0;i<28;i++)zL|=BigInt(Z[i])<<BigInt(i*8);
+for(var i=0;i<32;i++)kLn|=BigInt(kL[i])<<BigInt(i*8);
+var kLc=zL*8n+kLn;
+var nkL=new Uint8Array(32);var tmp=kLc;for(var i=0;i<32;i++){nkL[i]=Number(tmp&0xffn);tmp>>=8n}
+var zR=0n,kRn=0n;
+for(var i=0;i<32;i++)zR|=BigInt(Z[32+i])<<BigInt(i*8);
+for(var i=0;i<32;i++)kRn|=BigInt(kR[i])<<BigInt(i*8);
+var kRc=(zR+kRn)&((1n<<256n)-1n);
+var nkR=new Uint8Array(32);tmp=kRc;for(var i=0;i<32;i++){nkR[i]=Number(tmp&0xffn);tmp>>=8n}
+return{kL:nkL,kR:nkR,cc:cNew};
+}
+
+async function addrADA(words){
+var mk=await icarusMasterKey(words);
+var p=[0x80000000+1852,0x80000000+1815,0x80000000];
+for(var i=0;i<p.length;i++)mk=await deriveAdaChild(mk.kL,mk.kR,mk.cc,p[i]);
+var acct={kL:mk.kL,kR:mk.kR,cc:mk.cc};
+var pk=await deriveAdaChild(acct.kL,acct.kR,acct.cc,0);
+pk=await deriveAdaChild(pk.kL,pk.kR,pk.cc,0);
+var sk=await deriveAdaChild(acct.kL,acct.kR,acct.cc,2);
+sk=await deriveAdaChild(sk.kL,sk.kR,sk.cc,0);
+var ph=blake2b(ePubDirect(pk.kL),28);
+var sh=blake2b(ePubDirect(sk.kL),28);
+var ab=new Uint8Array(57);ab[0]=0x01;ab.set(ph,1);ab.set(sh,29);
+return bech32Enc('addr',convBits(Array.from(ab),8,5,true));
+}
+
+var tonCH=new Uint8Array([32,131,75,123,114,177,18,20,126,27,47,180,87,184,78,116,209,163,15,4,247,55,212,246,42,102,142,149,82,210,183,47]);
+var tonCD=6;
+
+async function genTonMnemonic(){
+var enc=new TextEncoder();
+while(true){
+var words=[];for(var i=0;i<24;i++){var rv=new Uint32Array(1);crypto.getRandomValues(rv);words.push(BIP39[rv[0]%2048])}
+var mn=words.join(' ');
+var entropy=await hmac512(mn,new Uint8Array(0));
+var vk=await crypto.subtle.importKey('raw',entropy,'PBKDF2',false,['deriveBits']);
+var vb=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode('TON seed version'),iterations:390,hash:'SHA-512'},vk,512));
+if(vb[0]!==0)continue;
+return words;
+}
+}
+
+async function addrTON(tonMn){
+var mn=tonMn.join(' ');
+var entropy=await hmac512(mn,new Uint8Array(0));
+var key=await crypto.subtle.importKey('raw',entropy,'PBKDF2',false,['deriveBits']);
+var seedBuf=await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode('TON default seed'),iterations:100000,hash:'SHA-512'},key,512);
+var seed=new Uint8Array(seedBuf).slice(0,32);
+var pub=await ePub(seed);
+var data=new Uint8Array(41);
+data[0]=0x80;
+data[4]=0x3F;data[5]=0xFF;data[6]=0xFF;data[7]=0x88;
+data[8]=0x80|(pub[0]>>1);
+for(var i=1;i<32;i++)data[8+i]=((pub[i-1]&1)<<7)|(pub[i]>>1);
+data[40]=((pub[31]&1)<<7)|0x20;
+var dRepr=new Uint8Array(43);dRepr[1]=81;dRepr.set(data,2);
+var dHash=await sha256(dRepr);
+var siRepr=new Uint8Array(71);
+siRepr[0]=2;siRepr[1]=1;siRepr[2]=0x34;
+siRepr[3]=(tonCD>>8)&0xff;siRepr[4]=tonCD&0xff;
+siRepr.set(tonCH,7);
+siRepr.set(dHash,39);
+var siHash=await sha256(siRepr);
+var ab=new Uint8Array(36);
+ab[0]=0x51;ab[1]=0;
+ab.set(siHash,2);
+var c=crc16(ab.subarray(0,34));
+ab[34]=(c>>8)&0xff;ab[35]=c&0xff;
+var s='';for(var i=0;i<36;i++)s+=String.fromCharCode(ab[i]);
+return btoa(s).replace(/\+/g,'-').replace(/\//g,'_');
+}
+
 var NET_FN={evm:addrEVM,btc:addrBTC,ltc:addrLTC,sol:addrSOL,xrp:addrXRP,xlm:addrXLM,doge:addrDOGE,trx:addrTRX};
 
 var sel={},N=1,wordLen=12,wallets=[];
@@ -566,14 +707,22 @@ try{
 if(!sPre){sInit();eInit()}
 wallets=[];
 var nets={};on.forEach(function(c){nets[COIN_NET[c]]=true});
+var needTon=!!nets.ton,needAda=!!nets.ada;
+var needBip=Object.keys(nets).some(function(n){return n!=='ton'});
 for(var w=0;w<N;w++){
 btn.textContent=N>1?'Генерация '+(w+1)+'/'+N:'Генерация...';
-var mnemonic=await genMnemonic(wordLen);
-var seed=await mnemonicToSeed(mnemonic);
+var mnemonic=needBip?await genMnemonic(wordLen):null;
+var seed=mnemonic?await mnemonicToSeed(mnemonic):null;
+var tonMn=needTon?await genTonMnemonic():null;
+var mnWords=mnemonic?mnemonic.split(' '):null;
 var netAddrs={};
-for(var n in nets)netAddrs[n]=await NET_FN[n](seed);
+for(var n in nets){
+if(n==='ton')netAddrs[n]=await addrTON(tonMn);
+else if(n==='ada')netAddrs[n]=await addrADA(mnWords);
+else netAddrs[n]=await NET_FN[n](seed);
+}
 var addrs={};on.forEach(function(c){addrs[c]=netAddrs[COIN_NET[c]]});
-wallets.push({seed:mnemonic.split(' '),addrs:addrs});
+wallets.push({seed:mnWords,tonSeed:tonMn,addrs:addrs});
 if(w%2===1)await new Promise(function(r){setTimeout(r,0)});
 }
 renderW();show('results');show('acts');show('foot');
@@ -593,17 +742,20 @@ var sb=document.getElementById('sendBtn');
 if(sb)sb.textContent='Отправить в бот · '+tot+' адресов';
 
 el.innerHTML=wallets.map(function(w,i){
-var s=w.seed.join(' ');
-var blob=s+' '+on.map(function(c){return c+' '+(w.addrs[c]||'')}).join(' ');
+var s=w.seed?w.seed.join(' '):'';
+var ts=w.tonSeed?w.tonSeed.join(' '):'';
+var primary=s||ts;
+var blob=s+' '+ts+' '+on.map(function(c){return c+' '+(w.addrs[c]||'')}).join(' ');
 if(q&&blob.toLowerCase().indexOf(q)<0)return '';
 var isMatch=q&&blob.toLowerCase().indexOf(q)>=0;
 var rows=on.map(function(c){
 var a=w.addrs[c]||'—';
 return '<div class="w-addr"><span class="w-c">'+c+'</span><span class="w-a" onclick="cp(\''+esc(a)+'\',this)" title="'+a+'">'+a+'</span></div>';
 }).join('');
+var tonLine=(w.tonSeed&&w.seed)?'<div class="w-top" style="margin-top:2px"><span class="w-n" style="font-size:9px;opacity:.7">TON</span><span class="w-seed" onclick="this.classList.toggle(\'open\')">'+ts+'</span><button class="w-cp" onclick="cp(\''+esc(ts)+'\',this)">copy</button></div>':'';
 return '<div class="w'+(isMatch?' match':'')+'"><div class="w-top"><span class="w-n">'+(i+1)+'</span>'+
-'<span class="w-seed" id="s'+i+'" onclick="this.classList.toggle(\'open\')">'+s+'</span>'+
-'<button class="w-cp" onclick="cp(\''+esc(s)+'\',this)">copy</button></div>'+
+'<span class="w-seed" id="s'+i+'" onclick="this.classList.toggle(\'open\')">'+primary+'</span>'+
+'<button class="w-cp" onclick="cp(\''+esc(primary)+'\',this)">copy</button></div>'+tonLine+
 '<div class="w-addrs">'+rows+'</div></div>';
 }).join('');
 }
@@ -618,7 +770,7 @@ setTimeout(function(){b.classList.remove('ok');b.textContent=o},700);
 }
 
 function dlTxt(){
-var t=wallets.map(function(w,i){return '#'+(i+1)+': '+w.seed.join(' ')}).join('\n');
+var t=wallets.map(function(w,i){var s='#'+(i+1)+': '+(w.seed?w.seed.join(' '):w.tonSeed.join(' '));if(w.tonSeed&&w.seed)s+='\nTON: '+w.tonSeed.join(' ');return s}).join('\n');
 dl('seeds.txt',t,'text/plain');
 }
 function dlBot(){
@@ -627,12 +779,12 @@ wallets.forEach(function(w){Object.keys(w.addrs).forEach(function(c){l.push(c+':
 dl('import.txt',l.join('\n'),'text/plain');
 }
 function dlCsv(){
-var t='wallet,coin,address,seed\n';
-wallets.forEach(function(w,i){Object.keys(w.addrs).forEach(function(c){t+=(i+1)+','+c+','+w.addrs[c]+',"'+w.seed.join(' ')+'"\n'})});
+var t='wallet,coin,address,seed,tonSeed\n';
+wallets.forEach(function(w,i){var ts=w.tonSeed?w.tonSeed.join(' '):'';var ss=w.seed?w.seed.join(' '):'';Object.keys(w.addrs).forEach(function(c){t+=(i+1)+','+c+','+w.addrs[c]+',"'+ss+'","'+ts+'"\n'})});
 dl('wallets.csv',t,'text/csv');
 }
 function dlJson(){
-var data=wallets.map(function(w,i){return{id:i+1,seed:w.seed.join(' '),addresses:w.addrs}});
+var data=wallets.map(function(w,i){var o={id:i+1,addresses:w.addrs};if(w.seed)o.seed=w.seed.join(' ');if(w.tonSeed)o.tonSeed=w.tonSeed.join(' ');return o});
 dl('wallets.json',JSON.stringify(data,null,2),'application/json');
 }
 
@@ -640,13 +792,18 @@ function dlHtml(){
 var on=Object.keys(sel).filter(function(c){return sel[c]});
 var ts=new Date().toLocaleString();
 var cards=wallets.map(function(w,i){
+var ts=w.tonSeed?w.tonSeed.join(' '):'';
 var rows=on.map(function(c){
 var a=w.addrs[c]||'';
 return '<tr class="addr-row" data-coin="'+c+'" data-addr="'+a+'"><td class="ac">'+c+'</td><td class="av">'+a+'</td></tr>';
 }).join('');
-return '<div class="card" data-seed="'+w.seed.join(' ')+'"><div class="card-h"><span class="card-n">#'+(i+1)+'</span><span class="card-m">'+wordLen+' words</span></div><div class="seed">'+w.seed.join(' ')+'</div><table class="addr-tbl">'+rows+'</table></div>';
+var ss=w.seed?w.seed.join(' '):'';
+var seedHtml=ss?'<div class="seed">'+ss+'</div>':'';
+if(w.tonSeed&&w.seed)seedHtml+='<div style="font-size:9px;color:#555;margin:4px 0 2px">TON seed:</div><div class="seed">'+ts+'</div>';
+else if(w.tonSeed&&!w.seed)seedHtml='<div class="seed">'+ts+'</div>';
+return '<div class="card" data-seed="'+(ss||ts)+'" data-tonseed="'+ts+'"><div class="card-h"><span class="card-n">#'+(i+1)+'</span><span class="card-m">'+wordLen+' words</span></div>'+seedHtml+'<table class="addr-tbl">'+rows+'</table></div>';
 }).join('');
-var html='<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>4streams backup</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600&display=swap"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#000;color:#999;font-family:Rubik,sans-serif;padding:40px 24px}.wrap{max-width:1100px;margin:0 auto}.head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px}.head-l{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:1px}.head-r{font-size:10px;color:#333}.sb{margin-bottom:20px}.sb input{width:100%;height:38px;background:#0a0a0a;border:1px solid #1a1a1a;color:#999;font-family:Rubik,sans-serif;font-size:12px;padding:0 14px;outline:none}.sb input:focus{border-color:#444}.sb input::placeholder{color:#333}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{background:#0a0a0a;border:1px solid #181818;padding:16px 20px;transition:border-color .1s;overflow:hidden}.card.hl{border-color:#444}.card-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}.card-n{color:#555;font-size:12px;font-weight:500}.card-m{color:#333;font-size:10px}.seed{font-size:12px;color:#ccc;word-break:break-word;line-height:1.8;margin-bottom:12px;padding:10px 12px;background:#000;border:1px solid #111}.addr-tbl{width:100%;border-collapse:collapse;table-layout:fixed}.ac{color:#555;font-weight:500;text-align:right;padding:2px 10px 2px 0;font-size:11px;white-space:nowrap;width:50px}.av{font-size:10px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.foot{text-align:center;margin-top:28px;font-size:10px;color:#222}@media(max-width:700px){.grid{grid-template-columns:1fr}}@media print{body{background:#fff;color:#333}.card{background:#f8f8f8;border-color:#ddd}.seed{background:#fff;color:#000;border-color:#ccc}.ac{color:#333}.av{color:#555}.sb{display:none}}</style></head><body><div class="wrap"><div class="head"><div class="head-l">'+wallets.length+' wallets &middot; '+on.length+' coins</div><div class="head-r">'+ts+'</div></div><div class="sb"><input type="text" id="q" placeholder="Поиск по seed, адресу, монете..." oninput="doSearch()"></div><div class="grid" id="grid">'+cards+'</div><div class="foot">4streams wallet backup</div></div><script>function doSearch(){var q=document.getElementById("q").value.toLowerCase().trim();var cards=document.querySelectorAll(".card");cards.forEach(function(c){var blob=c.getAttribute("data-seed");c.querySelectorAll(".addr-row").forEach(function(r){blob+=" "+r.getAttribute("data-coin")+" "+r.getAttribute("data-addr")});var match=!q||blob.toLowerCase().indexOf(q)>=0;c.style.display=match?"":"none";c.classList.toggle("hl",!!q&&match)})}<\/script></body></html>';
+var html='<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>4streams backup</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600&display=swap"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#000;color:#999;font-family:Rubik,sans-serif;padding:40px 24px}.wrap{max-width:1100px;margin:0 auto}.head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px}.head-l{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:1px}.head-r{font-size:10px;color:#333}.sb{margin-bottom:20px}.sb input{width:100%;height:38px;background:#0a0a0a;border:1px solid #1a1a1a;color:#999;font-family:Rubik,sans-serif;font-size:12px;padding:0 14px;outline:none}.sb input:focus{border-color:#444}.sb input::placeholder{color:#333}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{background:#0a0a0a;border:1px solid #181818;padding:16px 20px;transition:border-color .1s;overflow:hidden}.card.hl{border-color:#444}.card-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}.card-n{color:#555;font-size:12px;font-weight:500}.card-m{color:#333;font-size:10px}.seed{font-size:12px;color:#ccc;word-break:break-word;line-height:1.8;margin-bottom:12px;padding:10px 12px;background:#000;border:1px solid #111}.addr-tbl{width:100%;border-collapse:collapse;table-layout:fixed}.ac{color:#555;font-weight:500;text-align:right;padding:2px 10px 2px 0;font-size:11px;white-space:nowrap;width:50px}.av{font-size:10px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.foot{text-align:center;margin-top:28px;font-size:10px;color:#222}@media(max-width:700px){.grid{grid-template-columns:1fr}}@media print{body{background:#fff;color:#333}.card{background:#f8f8f8;border-color:#ddd}.seed{background:#fff;color:#000;border-color:#ccc}.ac{color:#333}.av{color:#555}.sb{display:none}}</style></head><body><div class="wrap"><div class="head"><div class="head-l">'+wallets.length+' wallets &middot; '+on.length+' coins</div><div class="head-r">'+ts+'</div></div><div class="sb"><input type="text" id="q" placeholder="Поиск по seed, адресу, монете..." oninput="doSearch()"></div><div class="grid" id="grid">'+cards+'</div><div class="foot">4streams wallet backup</div></div><script>function doSearch(){var q=document.getElementById("q").value.toLowerCase().trim();var cards=document.querySelectorAll(".card");cards.forEach(function(c){var blob=c.getAttribute("data-seed")+" "+(c.getAttribute("data-tonseed")||"");c.querySelectorAll(".addr-row").forEach(function(r){blob+=" "+r.getAttribute("data-coin")+" "+r.getAttribute("data-addr")});var match=!q||blob.toLowerCase().indexOf(q)>=0;c.style.display=match?"":"none";c.classList.toggle("hl",!!q&&match)})}<\/script></body></html>';
 dl('4streams-backup.html',html,'text/html');
 }
 
@@ -654,7 +811,10 @@ function sendBot(){
 if(typeof Telegram==='undefined'||!Telegram.WebApp)return toast('Доступно только в Telegram');
 var l=[];
 wallets.forEach(function(w){Object.keys(w.addrs).forEach(function(c){l.push(c+':'+w.addrs[c])})});
-Telegram.WebApp.sendData(JSON.stringify({wallets:l,seeds:wallets.map(function(w){return w.seed.join(' ')})}));
+var data={wallets:l,seeds:wallets.filter(function(w){return w.seed}).map(function(w){return w.seed.join(' ')})};
+var ts=wallets.filter(function(w){return w.tonSeed}).map(function(w){return w.tonSeed.join(' ')});
+if(ts.length)data.tonSeeds=ts;
+Telegram.WebApp.sendData(JSON.stringify(data));
 }
 
 function dl(name,content,type){
