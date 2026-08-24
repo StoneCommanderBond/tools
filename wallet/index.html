@@ -79,8 +79,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--fg);-webkit-font-s
 .act{height:42px;display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:12px;font-weight:500;color:var(--fg2);background:transparent;border:1px solid var(--fg6);cursor:pointer;transition:all .1s}
 .act:hover{border-color:var(--fg4);color:var(--fg)}
 .act.full{grid-column:1/-1}
-.sticky{position:fixed;bottom:0;left:0;right:0;padding:16px 24px;padding-bottom:max(16px,env(safe-area-inset-bottom));background:linear-gradient(to top,#000 60%,transparent);z-index:100}
-.sticky .btn{max-width:460px;margin:0 auto;display:block}
 .foot{text-align:center;margin-top:24px;font-size:10px;color:var(--fg5);line-height:1.7}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#181818;color:#ccc;font-size:12px;font-family:var(--font);padding:8px 20px;border:1px solid var(--fg6);opacity:0;transition:opacity .2s;pointer-events:none;z-index:200}
 .toast.show{opacity:1}
@@ -152,7 +150,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--fg);-webkit-font-s
 </div>
 
 <div id="acts" class="hidden">
-<div class="sec-t" style="margin-top:8px">Экспорт</div>
+<button class="btn" onclick="sendBot()" id="sendBtn" style="margin-bottom:12px">Импортировать в бот</button>
+<div class="sec-t" style="margin-top:8px">Экспорт в файл</div>
 <div class="export-grid">
 <button class="act" onclick="dlTxt()">Seeds .txt</button>
 <button class="act" onclick="dlBot()">Для бота</button>
@@ -165,10 +164,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--fg);-webkit-font-s
 <div id="foot" class="hidden foot">
 Генерация происходит локально в браузере. Данные не покидают устройство.
 </div>
-</div>
-
-<div id="sticky" class="hidden sticky">
-<button class="btn" onclick="sendBot()" id="sendBtn">Отправить в бот</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -662,7 +657,6 @@ else{var sw=ls('w');if(sw)wordLen=parseInt(sw)||12}
 renderNets();renderWordSel();
 document.getElementById('nv').value=N;
 if(typeof Telegram!=='undefined'&&Telegram.WebApp){Telegram.WebApp.ready();Telegram.WebApp.expand()}
-else{var s=document.getElementById('sticky');if(s)s.remove()}
 }
 function setDefaults(){NETS.forEach(function(n){n.coins.forEach(function(c){sel[c]=defaults.indexOf(c)>=0})})}
 
@@ -726,7 +720,6 @@ wallets.push({seed:mnWords,tonSeed:tonMn,addrs:addrs});
 if(w%2===1)await new Promise(function(r){setTimeout(r,0)});
 }
 renderW();show('results');show('acts');show('foot');
-if(document.getElementById('sticky'))show('sticky');
 }catch(e){console.error(e);toast('Ошибка: '+e.message)}
 btn.disabled=false;btn.textContent='Сгенерировать заново';btn.className='btn sec';
 }
@@ -739,7 +732,7 @@ var q=(document.getElementById('q').value||'').toLowerCase().trim();
 document.getElementById('rc').innerHTML='<b>'+wallets.length+'</b> '+wPlural(wallets.length)+' · <b>'+tot+'</b> '+aPlural(tot);
 document.getElementById('rm').textContent=on.length+' coins · '+wordLen+' words';
 var sb=document.getElementById('sendBtn');
-if(sb)sb.textContent='Отправить в бот · '+tot+' адресов';
+if(sb)sb.textContent='Импортировать в бот · '+tot+' '+aPlural(tot);
 
 el.innerHTML=wallets.map(function(w,i){
 var s=w.seed?w.seed.join(' '):'';
